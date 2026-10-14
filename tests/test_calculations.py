@@ -102,3 +102,45 @@ def test_content_is_consistent():
         assert t["intel"] and t["items"]
     for _, _, _, _, topic in KEY_DATES:
         assert topic in titles, topic
+
+
+def test_plan_cost_caps_at_out_of_pocket_max():
+    from calculations import plan_cost
+
+    assert plan_cost(1_000, 3_400, 20, 8_000, 10_000, 1_000) == pytest.approx(1_000 + 3_400 + 1_320 - 1_000)
+    assert plan_cost(1_000, 3_400, 20, 8_000, 1_000_000) == pytest.approx(9_000)
+    assert plan_cost(1_000, 3_400, 20, 8_000, 0) == 1_000
+
+
+def test_probate_fee_matches_statutory_schedule():
+    from calculations import probate_fee
+
+    assert probate_fee(100_000) == pytest.approx(4_000)
+    assert probate_fee(1_000_000) == pytest.approx(23_000)
+    assert probate_fee(2_000_000) == pytest.approx(33_000)
+
+
+OFFICIAL = (".gov", "intel.com", "intc.com", "openvino.ai", "uspreventiveservicestaskforce.org", "scholarshare529.com",
+            "earthquakeauthority.com", "annualcreditreport.com", "coveredca.com", "readyforwildfire.org")
+
+
+def test_every_section_links_only_to_intel_or_government_sources():
+    from urllib.parse import urlparse
+
+    from content import NEWS
+
+    for name in [l for t in TOPICS for l in t["links"]] + [l for p in NEWS.values() for l in p["links"]]:
+        host = urlparse(SOURCES[name]).hostname
+        assert host.endswith(OFFICIAL), (name, host)
+
+
+def test_every_topic_has_formulas_and_mistakes():
+    from insights import INSIGHTS
+
+    assert set(INSIGHTS) == {t["title"] for t in TOPICS}
+    for title, info in INSIGHTS.items():
+        assert len(info["formulas"]) >= 1 and len(info["mistakes"]) >= 3, title
+        for chart in (info.get("chart"), info.get("chart2")):
+            if chart and chart["kind"] == "bar":
+                values = chart["data"][chart["y"]]
+                assert len(values) == len(chart["data"][chart["x"]]), title

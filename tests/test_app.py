@@ -35,7 +35,7 @@ def test_next_topic_button_advances():
 def test_every_calculator_renders():
     at = run("🧮 Calculators")
     options = at.button_group[0].options
-    assert len(options) == 10
+    assert len(options) == 12
     for option in options:
         at.button_group[0].set_value(option).run()
         assert not at.exception, (option, at.exception)
@@ -56,3 +56,23 @@ def test_home_shows_headline_and_reminders():
     at = run()
     assert any("Intel ships new Xeon" in m.value for m in at.markdown)
     assert any(m.label == "Next reminder" for m in at.metric)
+
+
+def test_every_page_ends_with_a_mistakes_table():
+    for section in run().sidebar.radio[0].options:
+        at = run(section)
+        assert any("Common mistakes" in h.value for h in at.subheader), section
+
+
+def test_emergency_card_offers_download_once_named():
+    at = run("🆘 Family emergency card")
+    assert len(at.get("download_button")) == 0
+    at.text_input[0].input("Rao family").run()
+    assert not at.exception, at.exception
+    assert len(at.get("download_button")) == 1
+
+
+def test_life_review_score_updates():
+    at = run("✅ Annual life review")
+    at.checkbox[0].check().run()
+    assert at.metric[0].value == f"{1 / len(TOPICS):.0%}"

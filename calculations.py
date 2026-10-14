@@ -174,6 +174,28 @@ def mortgage_payment(principal, annual_rate_percent, years):
     return principal * r / (1 - (1 + r) ** -n)
 
 
+def plan_cost(premiums, deductible, coinsurance_percent, oop_max, spending, employer_hsa=0.0):
+    """Yearly cost of a medical plan: premiums plus what you pay for care, minus employer HSA money.
+
+    You pay all spending up to the deductible, then the coinsurance share, capped at the out-of-pocket maximum.
+    """
+    covered = min(spending, deductible) + max(0.0, spending - deductible) * coinsurance_percent / 100
+    return premiums + min(covered, oop_max) - employer_hsa
+
+
+def probate_fee(estate):
+    """California statutory probate fee for the attorney (the executor gets the same again)."""
+    tiers = [(100_000, 0.04), (100_000, 0.03), (800_000, 0.02), (9_000_000, 0.01), (15_000_000, 0.005)]
+    fee, left = 0.0, estate
+    for size, rate in tiers:
+        part = min(left, size)
+        fee += part * rate
+        left -= part
+        if left <= 0:
+            break
+    return fee
+
+
 def concentration(holding, total):
     return 100 * holding / total if total > 0 else None
 
